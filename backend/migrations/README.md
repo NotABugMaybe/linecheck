@@ -1,0 +1,1 @@
+Schema creation currently uses SQLAlchemy metadata for local bootstrap. Before deployment, replace bootstrap with reviewed Alembic migrations; do not rely on create_all for upgrades of a live database.

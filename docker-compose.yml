@@ -1,0 +1,44 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://linecheck:${POSTGRES_PASSWORD:-local-only}@db:5432/linecheck
+      STORAGE_DIR: /data/images
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      DEVELOPMENT_MODE: ${DEVELOPMENT_MODE:-false}
+    volumes:
+      - images:/data/images
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/ready')"]
+      interval: 20s
+      timeout: 3s
+      retries: 5
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: linecheck
+      POSTGRES_USER: linecheck
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-only}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U linecheck"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  postgres:
+  images:
